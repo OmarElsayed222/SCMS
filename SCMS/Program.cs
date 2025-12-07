@@ -1,3 +1,6 @@
+﻿using Microsoft.EntityFrameworkCore;
+using SCMS.Models;   // ← هنا مكان وجود الـ DbContext (فولدر Data مثلاً)
+
 namespace SCMS
 {
     public class Program
@@ -5,6 +8,13 @@ namespace SCMS
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // ====== DbContext ======
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("Default")
+                )
+            );
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
@@ -16,6 +26,7 @@ namespace SCMS
             {
                 app.UseExceptionHandler("/Home/Error");
             }
+
             app.UseStaticFiles();
 
             app.UseRouting();

@@ -1,4 +1,4 @@
-﻿@model SCMS.ViewModels.RegisterVm
+@model SCMS.ViewModels.RegisterVm
 
 @{
     ViewData["Title"] = "Register";
@@ -12,35 +12,36 @@
             Create a new account to access the Smart Clinic System
         </p>
 
-        <form asp-action="Register" method="post">
-            <div asp-validation-summary="All" class="text-danger"></div>
+        <!-- Show all validation errors -->
+        <div asp-validation-summary="All" class="text-danger" style="margin-bottom:10px;"></div>
 
-            <label asp-for="FullName"></label>
-            <input asp-for="FullName" placeholder="Enter your full name" />
+        <form asp-action="Register" method="post">
+            <label asp-for="FullName">Full Name</label>
+            <input asp-for="FullName" placeholder="Enter your full name" required />
             <span asp-validation-for="FullName" class="text-danger"></span>
 
-            <label asp-for="Email"></label>
-            <input asp-for="Email" type="email" placeholder="Enter your email" />
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" placeholder="Enter your email" required />
             <span asp-validation-for="Email" class="text-danger"></span>
 
-            <label asp-for="Phone"></label>
-            <input asp-for="Phone" type="text" placeholder="Enter your phone number" />
+            <label asp-for="Phone">Phone</label>
+            <input asp-for="Phone" type="text" placeholder="Enter your phone number" required />
             <span asp-validation-for="Phone" class="text-danger"></span>
 
-            <label asp-for="Username"></label>
-            <input asp-for="Username" placeholder="Choose a username" />
+            <label asp-for="Username">Username</label>
+            <input asp-for="Username" placeholder="Choose a username" required />
             <span asp-validation-for="Username" class="text-danger"></span>
 
-            <label asp-for="Password"></label>
-            <input asp-for="Password" type="password" placeholder="Enter a password" />
+            <label asp-for="Password">Password</label>
+            <input asp-for="Password" type="password" placeholder="Enter a password" required />
             <span asp-validation-for="Password" class="text-danger"></span>
 
-            <label asp-for="ConfirmPassword"></label>
-            <input asp-for="ConfirmPassword" type="password" placeholder="Confirm your password" />
+            <label asp-for="ConfirmPassword">Confirm Password</label>
+            <input asp-for="ConfirmPassword" type="password" placeholder="Confirm your password" required />
             <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
 
             <label asp-for="UserType">User Type</label>
-            <select asp-for="UserType">
+            <select asp-for="UserType" required>
                 <option value="">-- Select User Type --</option>
                 <option value="Patient">Patient</option>
                 <option value="Doctor">Doctor</option>

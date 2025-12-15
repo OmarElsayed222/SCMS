@@ -14,6 +14,7 @@
                placeholder="Search by name or phone..."
                value="@Model.SearchTerm" />
         <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-action="EditPatient" class="btn btn-success ms-2">Add New Patient</a>
     </form>
 
     <!-- Patients Table -->
@@ -29,13 +30,14 @@
                         <th>Age</th>
                         <th>Phone</th>
                         <th>Last Visit</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Patients.Any())
                     {
                         <tr>
-                            <td colspan="4" class="text-center text-muted">
+                            <td colspan="5" class="text-center text-muted">
                                 No patients found.
                             </td>
                         </tr>
@@ -48,10 +50,12 @@
                                 <td>@p.FullName</td>
                                 <td>@p.Age</td>
                                 <td>@p.Phone</td>
+                                <td>@(p.LastVisit.HasValue? p.LastVisit.Value.ToShortDateString() : "-")</td>
                                 <td>
-                                    @(p.LastVisit.HasValue 
-                                        ? p.LastVisit.Value.ToShortDateString() 
-                                        : "-")
+                                    <a asp-action="EditPatient" asp-route-id="@p.PatientId" class="btn btn-sm btn-warning">Edit</a>
+                                    <form asp-action="DeletePatient" asp-route-id="@p.PatientId" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                                    </form>
                                 </td>
                             </tr>
                         }

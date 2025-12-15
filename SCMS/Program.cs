@@ -12,12 +12,10 @@ namespace SCMS
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // ================== DbContext ==================
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("Default"))
             );
 
-            // ================== Session ==================
             builder.Services.AddDistributedMemoryCache();
             builder.Services.AddSession(options =>
             {
@@ -26,7 +24,6 @@ namespace SCMS
                 options.Cookie.IsEssential = true;
             });
 
-            // ================== Services ==================
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IStaffService, StaffService>();
@@ -49,7 +46,6 @@ namespace SCMS
 
             var app = builder.Build();
 
-            // ================== Middleware ==================
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
@@ -61,7 +57,6 @@ namespace SCMS
 
             app.UseRouting();
 
-            // ✅ لازم قبل أي Controller يستخدم Session
             app.UseSession();
 
             app.UseAuthorization();
@@ -71,13 +66,12 @@ namespace SCMS
                 pattern: "{controller=Account}/{action=Login}/{id?}"
             );
 
-            // ================== Seed Admin (Runtime) ==================
             using (var scope = app.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
 
-                // لو مفيش admin موجود
+              
                 var adminExists = context.Users.OfType<Admin>()
                     .Any(a => a.Username == "admin" || a.Email == "admin@scms.com");
 
@@ -88,7 +82,7 @@ namespace SCMS
                         FullName = "System Admin",
                         Email = "admin@scms.com",
                         Username = "admin",
-                        Phone = "01000000000", // ✅ لازم (لو Phone required)
+                        Phone = "01000000000", 
                         PasswordHash = authService.HashPassword("Admin@123"),
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow,

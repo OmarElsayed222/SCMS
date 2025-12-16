@@ -4,9 +4,6 @@ namespace SCMS.ViewModels.Patient
 {
     public class PatientVM
     {
-        // ✅ مهم للـ routing والـ links
-        public int UserId { get; set; }
-
         // ===== Basic Info =====
         public int PatientId { get; set; }
         public string FullName { get; set; } = null!;

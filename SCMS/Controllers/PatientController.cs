@@ -30,7 +30,10 @@ namespace SCMS.Controllers
 
             return new PatientVM
             {
+                // ✅ بتوع كمال
                 UserId = userId,
+                // لو الـ PatientVM عندك مفيهوش UserId وبداله PatientId استخدم بدل السطر اللي فوق:
+                // PatientId = patient.UserId,
 
                 FullName = patient.FullName,
                 Gender = patient.Gender,
@@ -41,7 +44,13 @@ namespace SCMS.Controllers
 
                 AppointmentsCount = patient.AppointmentBookings.Count,
                 PrescriptionsCount = patient.Prescriptions.Count,
-                MedicalRecordsCount = patient.MedicalRecords.Count
+                MedicalRecordsCount = patient.MedicalRecords.Count,
+
+                IsProfileIncomplete =
+                    patient.Age <= 0 ||
+                    patient.Gender == "Unknown" ||
+                    string.IsNullOrWhiteSpace(patient.Address) || patient.Address == "N/A" ||
+                    string.IsNullOrWhiteSpace(patient.MedicalHistorySummary)
             };
         }
 
@@ -83,6 +92,15 @@ namespace SCMS.Controllers
             var vm = await GetPatientVM(id);
             if (vm == null) return NotFound("Patient not found for this user");
             return View(vm);
+        }
+
+        private static int CalculateAge(DateTime dob)
+        {
+            var today = DateTime.Today;
+            var age = today.Year - dob.Year;
+            if (dob.Date > today.AddYears(-age)) age--;
+            if (age < 0) age = 0;
+            return age;
         }
     }
 }

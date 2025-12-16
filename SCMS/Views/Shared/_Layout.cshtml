@@ -1,7 +1,14 @@
 ﻿@using SCMS.Models
 @{
     var userType = Context.Session.GetInt32("UserType");
-    var isLoggedIn = Context.Session.GetString("UserId") != null;
+    var userIdStr = Context.Session.GetString("UserId");
+    var isLoggedIn = userIdStr != null;
+
+    int? userId = null;
+    if (int.TryParse(userIdStr, out var parsedId))
+    {
+        userId = parsedId;
+    }
 
     var currentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
@@ -40,8 +47,10 @@
 
             <ul class="nav flex-column">
 
-                @* Receptionist Menu *@
-                @if (userType == (int)UserType.Receptionist)
+                @* =========================
+                   Receptionist / Admin Menu
+                   ========================= *@
+                @if (userType == (int)UserType.Receptionist || userType == (int)UserType.Admin)
                 {
                     <li class="nav-item">
                         <a class="nav-link @Active("Reception", "Dashboard")"
@@ -72,7 +81,6 @@
                     </li>
                 }
 
-
                 @if (userType == (int)UserType.Admin)
                 {
                     <li class="nav-item">
@@ -83,16 +91,16 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link @Active("Admin", "AppointmentsOverview")"
-                           asp-controller="Admin" asp-action="AppointmentsOverview">
-                            <span>📅</span> <span>AppointmentsOverview</span>
+                        <a class="nav-link @Active("Patient", "MedicalRecords")"
+                           asp-controller="Patient" asp-action="MedicalRecords" asp-route-id="@userId">
+                            <span>📋</span> <span>Medical Records</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link @Active("Admin", "Users")"
-                           asp-controller="Admin" asp-action="Users">
-                            <span>👥</span> <span>Users</span>
+                        <a class="nav-link @Active("Patient", "Profile")"
+                           asp-controller="Patient" asp-action="Profile" asp-route-id="@userId">
+                            <span>👤</span> <span>Profile</span>
                         </a>
                     </li>
                 }

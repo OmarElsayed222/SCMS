@@ -14,31 +14,27 @@ namespace SCMS.Controllers
             _context = context;
         }
 
-        private int CurrentUserId()
+        private async Task<Patient?> GetPatientByUserId(int userId)
         {
-            var userIdStr = HttpContext.Session.GetString("UserId");
-            return int.TryParse(userIdStr, out var id) ? id : 0;
-        }
-
-        private UserType CurrentUserType()
-        {
-            var t = HttpContext.Session.GetInt32("UserType");
-            return t.HasValue ? (UserType)t.Value : UserType.User;
-        }
-
-        private async Task<PatientVM?> GetPatientVM(int userId)
-        {
-            var patient = await _context.Patients
+            return await _context.Patients
                 .Include(p => p.AppointmentBookings)
                 .Include(p => p.Prescriptions)
                 .Include(p => p.MedicalRecords)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
+        }
 
+        private async Task<PatientVM?> GetPatientVM(int userId)
+        {
+            var patient = await GetPatientByUserId(userId);
             if (patient == null) return null;
 
             return new PatientVM
             {
-                PatientId = patient.UserId,
+                // ✅ بتوع كمال
+                UserId = userId,
+                // لو الـ PatientVM عندك مفيهوش UserId وبداله PatientId استخدم بدل السطر اللي فوق:
+                // PatientId = patient.UserId,
+
                 FullName = patient.FullName,
                 Gender = patient.Gender,
                 DateOfBirth = patient.DateOfBirth,
@@ -58,103 +54,44 @@ namespace SCMS.Controllers
             };
         }
 
-        public async Task<IActionResult> Dashboard(int? id)
+        // /Patient/Dashboard/13   (13 = UserId)
+        public async Task<IActionResult> Dashboard(int id)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
-                return RedirectToAction("Login", "Account");
-
-            if (CurrentUserType() != UserType.Patient)
-                return RedirectToAction("AccessDenied", "Account");
-
-            var userId = id ?? CurrentUserId();
-            if (userId <= 0) return RedirectToAction("Login", "Account");
-
-            var vm = await GetPatientVM(userId);
-            if (vm == null) return NotFound();
-
+            var vm = await GetPatientVM(id);
+            if (vm == null) return NotFound("Patient not found for this user");
             return View(vm);
         }
 
-        public async Task<IActionResult> Profile(int? id)
+        // /Patient/Profile/13   (13 = UserId)
+        public async Task<IActionResult> Profile(int id)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
-                return RedirectToAction("Login", "Account");
-
-            if (CurrentUserType() != UserType.Patient)
-                return RedirectToAction("AccessDenied", "Account");
-
-            var userId = id ?? CurrentUserId();
-            if (userId <= 0) return RedirectToAction("Login", "Account");
-
-            var vm = await GetPatientVM(userId);
-            if (vm == null) return NotFound();
-
+            var vm = await GetPatientVM(id);
+            if (vm == null) return NotFound("Patient not found for this user");
             return View(vm);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Edit(int? id)
+        // ✅ /Patient/Appointments/13
+        public async Task<IActionResult> Appointments(int id)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
-                return RedirectToAction("Login", "Account");
-
-            if (CurrentUserType() != UserType.Patient)
-                return RedirectToAction("AccessDenied", "Account");
-
-            var userId = id ?? CurrentUserId();
-            if (userId <= 0) return RedirectToAction("Login", "Account");
-
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
-            if (patient == null) return NotFound();
-
-            var vm = new PatientEditVm
-            {
-                PatientId = patient.UserId,
-                FullName = patient.FullName,
-                Gender = patient.Gender,
-                DateOfBirth = patient.DateOfBirth,
-                Address = patient.Address,
-                MedicalHistorySummary = patient.MedicalHistorySummary
-            };
-
+            var vm = await GetPatientVM(id);
+            if (vm == null) return NotFound("Patient not found for this user");
             return View(vm);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(PatientEditVm vm)
+        // ✅ /Patient/Prescriptions/13
+        public async Task<IActionResult> Prescriptions(int id)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
-                return RedirectToAction("Login", "Account");
+            var vm = await GetPatientVM(id);
+            if (vm == null) return NotFound("Patient not found for this user");
+            return View(vm);
+        }
 
-            if (CurrentUserType() != UserType.Patient)
-                return RedirectToAction("AccessDenied", "Account");
-
-            var sessionUserId = CurrentUserId();
-            if (sessionUserId <= 0) return RedirectToAction("Login", "Account");
-
-            if (vm.PatientId != sessionUserId)
-                return RedirectToAction("AccessDenied", "Account");
-
-            if (!ModelState.IsValid)
-                return View(vm);
-
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == vm.PatientId);
-            if (patient == null) return NotFound();
-
-            patient.FullName = vm.FullName?.Trim() ?? patient.FullName;
-            patient.Gender = vm.Gender?.Trim() ?? patient.Gender;
-            patient.DateOfBirth = vm.DateOfBirth;
-            patient.Address = vm.Address?.Trim() ?? patient.Address;
-            patient.MedicalHistorySummary = string.IsNullOrWhiteSpace(vm.MedicalHistorySummary)
-                ? null
-                : vm.MedicalHistorySummary.Trim();
-
-            patient.Age = CalculateAge(patient.DateOfBirth);
-
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Dashboard), new { id = patient.UserId });
+        // ✅ /Patient/MedicalRecords/13
+        public async Task<IActionResult> MedicalRecords(int id)
+        {
+            var vm = await GetPatientVM(id);
+            if (vm == null) return NotFound("Patient not found for this user");
+            return View(vm);
         }
 
         private static int CalculateAge(DateTime dob)

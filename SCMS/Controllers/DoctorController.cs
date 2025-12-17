@@ -154,6 +154,24 @@ namespace SCMS.Controllers
 
             if (appointment == null) return NotFound();
 
+            var patientIds = appointment.Bookings
+                .Where(b => b.Patient != null)
+                .Select(b => b.Patient.UserId)
+                .Distinct()
+                .ToList();
+
+            // ✅ هات أحدث نتيجة أشعة لكل مريض (اللي طلبها نفس الدكتور)
+            var latestResults = await _context.RadiologyResults
+                .Include(r => r.Request)
+                .Where(r => r.Request.DoctorId == doctorId && patientIds.Contains(r.Request.PatientId))
+                .OrderByDescending(r => r.ResultDate)
+                .Select(r => new { r.ResultId, PatientId = r.Request.PatientId })
+                .ToListAsync();
+
+            var latestByPatient = latestResults
+                .GroupBy(x => x.PatientId)
+                .ToDictionary(g => g.Key, g => (int?)g.First().ResultId);
+
             var vm = new DoctorAppointmentVm
             {
                 AppointmentId = appointment.AppointmentId,
@@ -172,7 +190,8 @@ namespace SCMS.Controllers
                         PatientId = b.Patient.UserId,
                         FullName = b.Patient.FullName,
                         Age = b.Patient.Age,
-                        Phone = b.Patient.Phone ?? ""
+                        Phone = b.Patient.Phone ?? "",
+                        LatestRadiologyResultId = latestByPatient.TryGetValue(b.Patient.UserId, out var rid) ? rid : null
                     })
                     .ToList()
             };
@@ -180,44 +199,10 @@ namespace SCMS.Controllers
             return View(vm);
         }
 
-        [HttpGet]
-        public IActionResult CreateAppointment()
-        {
-            var guard = RequireDoctor();
-            if (guard != null) return guard;
 
-            return View();
-        }
+        
+       
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateAppointment(DoctorAppointmentVm vm)
-        {
-            var guard = RequireDoctor();
-            if (guard != null) return guard;
-
-            var doctorId = CurrentUserId();
-
-            if (!ModelState.IsValid)
-                return View(vm);
-
-            var appointment = new Appointment
-            {
-                DoctorId = doctorId,
-                AppointmentDate = vm.AppointmentDate,
-                StartTime = vm.StartTime,
-                EndTime = vm.EndTime,
-                Capacity = vm.Capacity,
-                CurrentCount = 0,
-                Status = vm.Status,
-                Price = vm.Price
-            };
-
-            _context.Appointments.Add(appointment);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction("Appointments");
-        }
 
         [HttpGet]
         public IActionResult CreatePrescription(int patientId)

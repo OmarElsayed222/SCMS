@@ -1,0 +1,77 @@
+﻿@model SCMS.Models.Appointment
+
+@{
+    ViewData["Title"] = "Slot Details";
+    var booked = Model.Bookings.Where(b => b.Status == "Booked").ToList();
+    var remaining = Math.Max(0, Model.Capacity - booked.Count);
+}
+
+<div class="container mt-4">
+    <h2>Slot Details</h2>
+
+    <div class="card p-3 mb-3">
+        <div><b>Doctor:</b> @Model.Doctor.FullName</div>
+        <div><b>Date:</b> @Model.AppointmentDate.ToShortDateString()</div>
+        <div><b>Time:</b> @Model.StartTime - @Model.EndTime</div>
+        <div><b>Price:</b> @Model.Price</div>
+        <div><b>Status:</b> @Model.Status</div>
+        <div><b>Capacity:</b> @Model.Capacity | <b>Booked:</b> @booked.Count | <b>Remaining:</b> @remaining</div>
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+        @if (Model.Status == "Available" && remaining > 0)
+        {
+            <a class="btn btn-primary" asp-action="BookPatient" asp-route-appointmentId="@Model.AppointmentId">Book Patient</a>
+        }
+        <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Bookings</div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order</th>
+                        <th>Patient</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th style="width:160px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Bookings.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted">No bookings.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var b in Model.Bookings.OrderBy(x => x.OrderNumber))
+                        {
+                            <tr>
+                                <td>@b.OrderNumber</td>
+                                <td>@b.Patient.FullName</td>
+                                <td>@(b.Patient.Phone ?? "-")</td>
+                                <td>@b.Status</td>
+                                <td>
+                                    @if (b.Status == "Booked")
+                                    {
+                                        <form asp-action="CancelBooking" method="post" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="bookingId" value="@b.BookingId" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                            <button class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Cancel booking?');">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Query;
+using System;
 using System.Collections.Generic;
 
 namespace SCMS.ViewModels
@@ -18,7 +19,7 @@ namespace SCMS.ViewModels
 
         public int Capacity { get; set; }
         public int CurrentCount { get; set; }
-
+        public int Remaining;
         public string Status { get; set; } = "";
 
         public int? OrderNumber { get; set; } // دور المريض (لو هتعرضه للمريض/الريسبشن)

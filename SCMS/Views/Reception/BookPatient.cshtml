@@ -1,0 +1,44 @@
+﻿@model SCMS.ViewModels.ReceptionBookPatientVm
+
+@{
+    ViewData["Title"] = "Book Patient";
+    var appt = ViewBag.AppointmentInfo;
+}
+
+<div class="container mt-4">
+    <h2>Book Patient</h2>
+
+    <div class="card p-3 mb-3">
+        <div><b>Doctor:</b> @appt.FullName</div>
+        <div><b>Date:</b> @(((DateTime)appt.AppointmentDate).ToShortDateString())</div>
+        <div><b>Time:</b> @appt.StartTime - @appt.EndTime</div>
+        <div><b>Price:</b> @appt.Price</div>
+        <div><b>Capacity:</b> @appt.Capacity | <b>Booked:</b> @appt.BookedCount | <b>Remaining:</b> @appt.Remaining</div>
+    </div>
+
+    <form asp-action="BookPatient" method="post" class="card p-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnUrl" value="@Context.Request.Headers["Referer"].ToString()" />
+
+        <input type="hidden" asp-for="AppointmentId" />
+
+        <div class="mb-3">
+            <label class="form-label">Patient</label>
+            <select asp-for="PatientId" class="form-control">
+                <option value="">-- Select Patient --</option>
+                @foreach (var p in ViewBag.Patients)
+                {
+                    <option value="@p.UserId">@p.FullName (@p.Phone)</option>
+                }
+            </select>
+            <span asp-validation-for="PatientId" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Confirm Booking</button>
+        <a href="javascript:history.back()" class="btn btn-secondary ms-2">Back</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

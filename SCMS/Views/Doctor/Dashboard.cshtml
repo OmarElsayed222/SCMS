@@ -68,11 +68,7 @@
                     View All
                 </a>
 
-                <a asp-action="CreateAppointment"
-                   asp-route-doctorId="@Model.DoctorId"
-                   class="btn btn-sm btn-success">
-                    + Add Appointment
-                </a>
+               
             </div>
         </div>
 
@@ -89,6 +85,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Date</th>
+
                             <th>Time</th>
                             <th>Capacity</th>
                             <th>Booked</th>
@@ -120,12 +117,7 @@
                                         Details
                                     </a>
 
-                                    <a asp-action="CreatePrescription"
-                                       asp-route-patientId="0"
-                                       asp-route-doctorId="@Model.DoctorId"
-                                       class="btn btn-sm btn-outline-primary">
-                                        New Prescription
-                                    </a>
+                                   
                                 </td>
                             </tr>
                         }

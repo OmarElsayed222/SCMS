@@ -13,12 +13,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Welcome, @Model.ReceptionistName</h2>
 
-        <!-- ✅ زرار إضافة موعد يفتح الصفحة الجديدة -->
-        <a asp-controller="Reception"
-           asp-action="AddNewAppointment"
-           class="btn btn-success">
-            ➕ Add Appointment
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-controller="Reception" asp-action="CreateSlot" class="btn btn-success">
+                ➕ Add Clinic Slot
+            </a>
+
+            <a asp-controller="Reception" asp-action="Slots" class="btn btn-primary">
+                📅 View Slots
+            </a>
+        </div>
     </div>
 
     <!-- Cards -->
@@ -26,7 +29,7 @@
         <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
-                    <h5>Today's Appointments</h5>
+                    <h5>Today's Slots</h5>
                     <h2>@Model.TodaysAppointmentsCount</h2>
                 </div>
             </div>
@@ -51,9 +54,9 @@
         </div>
     </div>
 
-    <!-- Today's Appointments -->
+    <!-- Today's Slots -->
     <div class="card mb-4">
-        <div class="card-header">Today's Appointments</div>
+        <div class="card-header">Today's Clinic Slots</div>
 
         <table class="table table-striped mb-0">
             <thead>
@@ -61,9 +64,12 @@
                     <th>Date</th>
                     <th>Time</th>
                     <th>Doctor</th>
-                    <th>Patient</th>
+                    <th>Price</th>
+                    <th>Capacity</th>
+                    <th>Booked</th>
+                    <th>Remaining</th>
                     <th>Status</th>
-                    <th style="width:160px;">Actions</th>
+                    <th style="width:300px;">Actions</th>
                 </tr>
             </thead>
 
@@ -71,7 +77,7 @@
                 @if (Model.TodaysAppointments == null || !Model.TodaysAppointments.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted">No appointments today.</td>
+                        <td colspan="9" class="text-center text-muted">No slots today.</td>
                     </tr>
                 }
                 else
@@ -80,29 +86,56 @@
                     {
                         <tr>
                             <td>@item.AppointmentDate.ToShortDateString()</td>
-                            <td>@item.StartTime</td>
+                            <td>@item.StartTime - @item.EndTime</td>
                             <td>@item.DoctorName</td>
-                            <td>@item.PatientName</td>
-                            <td>@item.Status</td>
+                            <td>@item.Price</td>
+                            <td>@item.Capacity</td>
+                            <td>@item.CurrentCount</td>
+                            <td>@item.Remaining</td>
                             <td>
-                                <!-- ✅ الأزرار جنب بعض -->
-                                <div class="d-flex align-items-center gap-2">
-                                    <a asp-controller="Reception"
-                                       asp-action="EditAppointment"
-                                       asp-route-id="@item.AppointmentId"
-                                       class="btn btn-sm btn-warning">✏</a>
+                                <span class="badge @(item.Status == "Cancelled" ? "bg-danger" : item.Status == "Closed" ? "bg-warning text-dark" : "bg-success")">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
 
-                                    <form asp-controller="Reception"
-                                          asp-action="DeleteAppointment"
-                                          asp-route-id="@item.AppointmentId"
-                                          method="post" class="m-0">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit"
-                                                class="btn btn-sm btn-danger"
-                                                onclick="return confirm('Delete appointment?');">
-                                            🗑
-                                        </button>
-                                    </form>
+                                    <a asp-controller="Reception"
+                                       asp-action="SlotDetails"
+                                       asp-route-id="@item.AppointmentId"
+                                       class="btn btn-sm btn-dark">
+                                        Details
+                                    </a>
+
+                                    @if (item.Status == "Available" && item.Remaining > 0)
+                                    {
+                                        <a asp-controller="Reception"
+                                           asp-action="BookPatient"
+                                           asp-route-appointmentId="@item.AppointmentId"
+                                           class="btn btn-sm btn-primary">
+                                            Book Patient
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-secondary" disabled>Not Bookable</button>
+                                    }
+
+                                    @if (item.Status != "Cancelled")
+                                    {
+                                        <form asp-controller="Reception"
+                                              asp-action="CancelSlot"
+                                              method="post" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="appointmentId" value="@item.AppointmentId" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Cancel this slot?');">
+                                                Cancel Slot
+                                            </button>
+                                        </form>
+                                    }
                                 </div>
                             </td>
                         </tr>

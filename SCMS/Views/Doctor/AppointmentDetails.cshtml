@@ -56,6 +56,21 @@
                                    asp-route-doctorId="@Context.Session.GetString("UserId")">
                                     Create Radiology
                                 </a>
+
+                                @if (p.LatestRadiologyResultId.HasValue)
+                                {
+                                    <a class="btn btn-sm btn-primary"
+                                       asp-controller="Radiology"
+                                       asp-action="ResultDetails"
+                                       asp-route-id="@p.LatestRadiologyResultId.Value">
+                                        View Radiology Result
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning">No Result Yet</span>
+                                }
+
                             </td>
                         </tr>
                     }

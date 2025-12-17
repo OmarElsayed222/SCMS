@@ -33,14 +33,13 @@
             <span asp-validation-for="ClinicalNotes" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="PrescriptionId" class="form-label"></label>
-            <input asp-for="PrescriptionId" class="form-control" placeholder="Optional PrescriptionId" />
-            <span asp-validation-for="PrescriptionId" class="text-danger"></span>
-        </div>
+       
+        <input type="hidden" name="returnUrl" value="@Context.Request.Headers["Referer"].ToString()" />
 
         <button type="submit" class="btn btn-primary">Save Request</button>
-        <a asp-action="Requests" class="btn btn-secondary ms-2">Back</a>
+        <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+
+
     </form>
 </div>
 

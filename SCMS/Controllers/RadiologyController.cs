@@ -70,16 +70,31 @@ namespace SCMS.Controllers
             return null;
         }
 
-        public async Task<IActionResult> Requests()
+        public async Task<IActionResult> Requests(string? status)
         {
             var guard = RequireRadiologyStaff();
             if (guard != null) return guard;
 
-            var requests = await _context.RadiologyRequests
+            var q = _context.RadiologyRequests
                 .Include(r => r.Patient)
                 .Include(r => r.Doctor)
                 .Include(r => r.Radiologist)
                 .Include(r => r.Result)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    q = q.Where(r => r.Result == null); // ✅ لسه مفيش نتيجة
+                }
+                else if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+                {
+                    q = q.Where(r => r.Result != null); // ✅ اتضافت نتيجة
+                }
+            }
+
+            var requests = await q
                 .OrderByDescending(r => r.RequestDate)
                 .ToListAsync();
 
@@ -94,7 +109,7 @@ namespace SCMS.Controllers
                     Phone = r.Patient.Phone ?? "",
                     RequestDate = r.RequestDate,
                     TestName = r.TestName,
-                    Status = r.Status
+                    Status = (r.Result == null) ? "Pending" : "Completed"
                 }).ToList()
             };
 
@@ -102,13 +117,13 @@ namespace SCMS.Controllers
         }
 
         [HttpGet]
+        [HttpGet]
         public IActionResult CreateRequest(int patientId, int doctorId)
         {
             var guard = RequireRadiologyCreators();
             if (guard != null) return guard;
 
-            var type = CurrentUserType();
-            if (type == UserType.Doctor)
+            if (CurrentUserType() == UserType.Doctor)
                 doctorId = CurrentUserId();
 
             return View(new RadiologyRequestFormVm
@@ -118,15 +133,16 @@ namespace SCMS.Controllers
             });
         }
 
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateRequest(RadiologyRequestFormVm vm)
+        public async Task<IActionResult> CreateRequest(RadiologyRequestFormVm vm, string? returnUrl)
         {
             var guard = RequireRadiologyCreators();
             if (guard != null) return guard;
 
-            var type = CurrentUserType();
-            if (type == UserType.Doctor)
+            // ✅ لو الدكتور هو اللي بيعمل الطلب: تجاهل أي DoctorId جاي من الفورم
+            if (CurrentUserType() == UserType.Doctor)
                 vm.DoctorId = CurrentUserId();
 
             if (!ModelState.IsValid)
@@ -141,27 +157,12 @@ namespace SCMS.Controllers
                 return View(vm);
             }
 
-            if (vm.PrescriptionId.HasValue)
-            {
-                var okPrescription = await _context.Prescriptions.AnyAsync(p =>
-                    p.PrescriptionId == vm.PrescriptionId.Value &&
-                    p.PatientId == vm.PatientId &&
-                    p.DoctorId == vm.DoctorId);
-
-                if (!okPrescription)
-                {
-                    ModelState.AddModelError("", "Prescription غير صالح للمريض/الدكتور المحدد.");
-                    return View(vm);
-                }
-            }
-
             var request = new RadiologyRequest
             {
                 PatientId = vm.PatientId,
                 DoctorId = vm.DoctorId,
                 TestName = vm.TestName,
                 ClinicalNotes = vm.ClinicalNotes,
-                PrescriptionId = vm.PrescriptionId,
                 Status = "Pending",
                 RequestDate = DateTime.UtcNow
             };
@@ -169,8 +170,35 @@ namespace SCMS.Controllers
             _context.RadiologyRequests.Add(request);
             await _context.SaveChangesAsync();
 
+            TempData["ToastSuccess"] = "✅ Radiology request saved successfully.";
+
+            // ✅ يرجع لنفس الصفحة اللي كان جاي منها (AppointmentDetails)
+            // ✅ Toast
+            TempData["ToastSuccess"] = "✅ Radiology request saved successfully.";
+
+            // ✅ لو returnUrl جاي كـ Absolute URL (https://...) حوّله لمسار محلي
+            if (!string.IsNullOrWhiteSpace(returnUrl))
+            {
+                if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs))
+                {
+                    // يرجّعك للي قبلها (مثلاً /Doctor/AppointmentDetails/5)
+                    return LocalRedirect(abs.PathAndQuery);
+                }
+
+                // لو already local (/Doctor/...)
+                if (Url.IsLocalUrl(returnUrl))
+                    return LocalRedirect(returnUrl);
+            }
+
+            // ✅ fallback للدكتور: ما تروحش Requests لأنها ممنوعة عليه
+            if (CurrentUserType() == UserType.Doctor)
+                return RedirectToAction("Dashboard", "Doctor");
+
             return RedirectToAction(nameof(Requests));
+
         }
+
+
 
         public async Task<IActionResult> RequestDetails(int id)
         {
@@ -220,16 +248,16 @@ namespace SCMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateResult(RadiologyResultFormVm vm)
+        public async Task<IActionResult> CreateResult(RadiologyResultFormVm vm, string? returnUrl)
         {
             var login = RequireLogin();
             if (login != null) return login;
 
-            if (CurrentUserType() != UserType.Radiologist)
+            var type = CurrentUserType();
+            if (type != UserType.Radiologist && type != UserType.Admin) // لو عايز Admin كمان
                 return RedirectToAction("AccessDenied", "Account");
 
-            var currentRadiologistId = CurrentUserId();
-            vm.RadiologistId = currentRadiologistId;
+            vm.RadiologistId = CurrentUserId();
 
             if (!ModelState.IsValid)
                 return View(vm);
@@ -285,8 +313,22 @@ namespace SCMS.Controllers
 
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(ResultDetails), new { id = result.ResultId });
+            TempData["ToastSuccess"] = "✅ Result saved and sent to the doctor.";
+
+            // ✅ رجوع للصفحة اللي قبلها لو موجودة
+            if (!string.IsNullOrWhiteSpace(returnUrl))
+            {
+                if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs))
+                    return LocalRedirect(abs.PathAndQuery);
+
+                if (Url.IsLocalUrl(returnUrl))
+                    return LocalRedirect(returnUrl);
+            }
+
+            // ✅ fallback: روح للدكتور على ملف المريض (لازم الدكتور يكون مسموح له بالـ PatientFile)
+            return RedirectToAction("PatientFile", "Doctor", new { patientId = req.PatientId });
         }
+
 
         public async Task<IActionResult> ResultDetails(int id)
         {

@@ -46,7 +46,34 @@
             </div>
 
             <ul class="nav flex-column">
+                @* =========================
+   Radiologist Menu
+   ========================= *@
+                @if (userType == (int)UserType.Radiologist)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @Active("Radiology", "Requests")"
+                           asp-controller="Radiology" asp-action="Requests">
+                            <span>📋</span> <span>All Requests</span>
+                        </a>
+                    </li>
 
+                    <li class="nav-item">
+                        <a class="nav-link @(currentController == "Radiology" && currentAction == "Requests" && Context.Request.Query["status"] == "Pending" ? "active" : "")"
+                           asp-controller="Radiology" asp-action="Requests" asp-route-status="Pending">
+                            <span>⏳</span> <span>Pending Requests</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link @(currentController == "Radiology" && currentAction == "Requests" && Context.Request.Query["status"] == "Completed" ? "active" : "")"
+                           asp-controller="Radiology" asp-action="Requests" asp-route-status="Completed">
+                            <span>✅</span> <span>Completed Requests</span>
+                        </a>
+                    </li>
+
+                   
+                }
                 @* =========================
                    Patient Menu
                    ========================= *@
@@ -101,8 +128,8 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link @Active("Reception", "Appointments")"
-                           asp-controller="Reception" asp-action="Appointments">
+                        <a class="nav-link @Active("Reception", "Slots")"
+                           asp-controller="Reception" asp-action="Slots">
                             <span>📅</span> <span>Appointments</span>
                         </a>
                     </li>
@@ -193,5 +220,41 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    @if (TempData["ToastSuccess"] != null)
+    {
+        var toastId = Guid.NewGuid().ToString("N");
+
+        <div id="toastSuccess" data-toast-id="@toastId"
+             style="position:fixed; top:20px; right:20px; z-index:9999;
+                    background:#2e7d32; color:#fff; padding:12px 16px;
+                    border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.18);
+                    display:none;">
+            @TempData["ToastSuccess"]
+        </div>
+
+        <script>
+            (function () {
+                const t = document.getElementById('toastSuccess');
+                if (!t) return;
+
+                const id = t.getAttribute('data-toast-id');
+                const key = 'toast_shown_' + id;
+
+                // ✅ لو الصفحة رجعت من back/forward cache، متعرضش التوست تاني
+                if (sessionStorage.getItem(key) === '1') {
+                    t.remove();
+                    return;
+                }
+
+                sessionStorage.setItem(key, '1');
+
+                t.style.display = 'block';
+                setTimeout(() => { t.style.opacity = '0'; }, 2200);
+                setTimeout(() => { t.remove(); }, 2800);
+            })();
+        </script>
+    }
+
+
 </body>
 </html>
